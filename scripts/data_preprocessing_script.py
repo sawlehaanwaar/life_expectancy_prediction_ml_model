@@ -4,18 +4,18 @@ from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.impute import SimpleImputer
 from scipy.stats import mstats
 
-# Remove extra spaces from column labels
+# Removing extra spaces from column labels
 def clean_column_names(df):
     df.columns = df.columns.str.strip().str.replace('  ', ' ')
     return df
 
-# Convert all column names to lowercase
+# Converting all column names to lowercase
 def lowercase_column_names(df):
     df.columns = df.columns.str.lower()
 
     return df
 
-# Encode categorical variables (Label Encode 'Country' and One Hot Encode 'Status')
+# Encodeing categorical variables (Label Encode 'Country' and One Hot Encode 'Status')
 def encode_categorical_variables(df):
     label_encoder = LabelEncoder()
     df['country'] = label_encoder.fit_transform(df['country'])
@@ -28,7 +28,7 @@ def encode_categorical_variables(df):
     return df
 
 
-# Deal with missing values
+# Dealing with missing values
 def impute_missing_values(df):
     median_imputer = SimpleImputer(strategy='median')
     df[['gdp', 'population']] = median_imputer.fit_transform(df[['gdp', 'population']])
@@ -42,7 +42,7 @@ def impute_missing_values(df):
     
     return df
 
-# Deal with skewed data
+# Dealing with skewed data - Using different methods for different variables depending upon the skewness level of the column data
 def transform_skewed_data(df):
     df['gdp'] = np.log1p(df['gdp'])  
     df['population'] = np.log1p(df['population'])  
@@ -61,7 +61,7 @@ def transform_skewed_data(df):
     
     return df
 
-# Cap outliers
+# Capping outliers
 def cap_outliers(df, lower_percentile=0.01, upper_percentile=0.99):
     for column in df.select_dtypes(include=[np.number]).columns:
         lower_bound = df[column].quantile(lower_percentile)
@@ -70,12 +70,12 @@ def cap_outliers(df, lower_percentile=0.01, upper_percentile=0.99):
         df[column] = np.where(df[column] > upper_bound, upper_bound, df[column])
     return df
 
-# Winsorize Percentage expenditure column
+# Winsorize Percentage expenditure column due to its extreme outliers
 def winsorize_percentage_expenditure(df):
     df['percentage expenditure'] = mstats.winsorize(df['percentage expenditure'], limits=[0.01, 0.01])
     return df
 
-# Scale the data
+# Scaling the data using Robust Scaler
 def scale_data(df):
     scaler = RobustScaler()
     numerical_cols = df.select_dtypes(include=[np.number]).columns
@@ -83,7 +83,7 @@ def scale_data(df):
     
     return df
 
-# Full preprocessing pipeline
+# Aggregating Full preprocessing pipeline
 def preprocess_data(data_source):
     
     # Step 1: Load the data
