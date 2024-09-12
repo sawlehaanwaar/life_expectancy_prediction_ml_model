@@ -3,32 +3,35 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.impute import SimpleImputer
 from scipy.stats import mstats
+import joblib
+import os
 
-# Removing extra spaces from column labels
+# Cleaning column names
 def clean_column_names(df):
     df.columns = df.columns.str.strip().str.replace('  ', ' ')
+    print("Step 1: Clean column names - done")
     return df
 
-# Converting all column names to lowercase
+# Converting column names to lowercase
 def lowercase_column_names(df):
     df.columns = df.columns.str.lower()
-
+    print("Step 2: Convert column names to lowercase - done")
     return df
 
-# Encodeing categorical variables (Label Encode 'Country' and One Hot Encode 'Status')
+# Encoding categorical variables (Label Encode 'Country' and One Hot Encode 'Status')
 def encode_categorical_variables(df):
     label_encoder = LabelEncoder()
     df['country'] = label_encoder.fit_transform(df['country'])
     
     df = pd.get_dummies(df, columns=['status'], drop_first=True)
-
+    
     if 'status_Developing' in df.columns:
         df['status_Developing'] = df['status_Developing'].astype(int)
     
+    print("Step 3: Encode categorical variables - done")
     return df
 
-
-# Dealing with missing values
+#  Imputing missing values
 def impute_missing_values(df):
     median_imputer = SimpleImputer(strategy='median')
     df[['gdp', 'population']] = median_imputer.fit_transform(df[['gdp', 'population']])
@@ -40,9 +43,10 @@ def impute_missing_values(df):
     mean_imputer = SimpleImputer(strategy='mean')
     df[mean_columns] = mean_imputer.fit_transform(df[mean_columns])
     
+    print("Step 4: Impute missing values - done")
     return df
 
-# Dealing with skewed data - Using different methods for different variables depending upon the skewness level of the column data
+# Handling skewed data
 def transform_skewed_data(df):
     df['gdp'] = np.log1p(df['gdp'])  
     df['population'] = np.log1p(df['population'])  
@@ -59,35 +63,33 @@ def transform_skewed_data(df):
     df['hepatitis b'] = np.log1p(df['reflected_hepatitis_b'])
     df.drop(columns='reflected_hepatitis_b', inplace=True)
     
+    print("Step 5: Transform skewed data - done")
     return df
 
-# Capping outliers
+# Cap outliers
 def cap_outliers(df, lower_percentile=0.01, upper_percentile=0.99):
     for column in df.select_dtypes(include=[np.number]).columns:
         lower_bound = df[column].quantile(lower_percentile)
         upper_bound = df[column].quantile(upper_percentile)
         df[column] = np.where(df[column] < lower_bound, lower_bound, df[column])
         df[column] = np.where(df[column] > upper_bound, upper_bound, df[column])
+    
+    print("Step 6: Cap outliers - done")
     return df
 
-# Winsorize Percentage expenditure column due to its extreme outliers
+# Winsorize 'Percentage expenditure' column due to its extreme outliers
 def winsorize_percentage_expenditure(df):
     df['percentage expenditure'] = mstats.winsorize(df['percentage expenditure'], limits=[0.01, 0.01])
+    print("Step 7: Winsorize 'Percentage expenditure' - done")
     return df
-
-# Scaling the data using Robust Scaler
-def scale_data(df):
-    scaler = RobustScaler()
-    numerical_cols = df.select_dtypes(include=[np.number]).columns
-    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
     
-    return df
 
 # Aggregating Full preprocessing pipeline
-def preprocess_data(data_source):
+def preprocess_data(data_source, save_scaler=False):
     
     # Step 1: Load the data
     df = pd.read_csv(data_source)
+    print(f"Data loaded: {df.shape}")
     
     # Step 2: Clean column names
     df = clean_column_names(df)
@@ -95,22 +97,21 @@ def preprocess_data(data_source):
     # Step 3: Convert column names to lowercase
     df = lowercase_column_names(df)
     
-    # Step 3: Encode categorical variables
+    # Step 4: Encode categorical variables
     df = encode_categorical_variables(df)
     
-    # Step 4: Impute missing values
+    # Step 5: Impute missing values
     df = impute_missing_values(df)
     
-    # Step 5: Handle data skewness
+    # Step 6: Handle data skewness
     df = transform_skewed_data(df)
     
-    # Step 6: Cap outliers
+    # Step 7: Cap outliers
     df = cap_outliers(df)
     
-    # Step 7: Winsorize 'Percentage expenditure' column
+    # Step 8: Winsorize 'Percentage expenditure' column
     df = winsorize_percentage_expenditure(df)
     
-    # Step 8: Scale the data
-    df = scale_data(df)
+    print("Preprocessing complete.")
     
     return df
